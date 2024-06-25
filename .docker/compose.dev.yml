@@ -1,0 +1,73 @@
+version: "3.7"
+
+services:
+  valicare-php-fpm:
+    build:
+      dockerfile: .docker/fpm-dev.Dockerfile
+      context: ../
+    volumes:
+      - ../.:/app:cached
+    image: valicare-api-fpm-dev
+    networks:
+      - main
+
+  valicare-nginx:
+    image: nginx:mainline-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./php.conf:/etc/nginx/conf.d/default.conf
+      - ../public:/var/www/html/public:cached
+    networks:
+      - main
+
+  valicare-db:
+    image: mariadb:10
+    environment:
+      - MYSQL_DATABASE=valicare_api
+      - MYSQL_ROOT_PASSWORD=test
+    ports:
+      - "3310:3306"
+    volumes:
+      - valicare_api_mysql_data:/var/lib/mysql
+    networks:
+      - main
+
+  valicare-test-db:
+    image: mariadb:10
+    environment:
+    - MYSQL_DATABASE=valicare_api_test
+    - MYSQL_ROOT_PASSWORD=test
+    ports:
+    - "3311:3306"
+    volumes:
+    - valicare_api_test_mysql_data:/var/lib/mysql
+    networks:
+    - main
+
+  valicare-redis:
+    image: redis:7.0.2-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning --requirepass test
+    volumes:
+      - valicare-redis:/data
+    networks:
+      - main
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - main
+
+volumes:
+  valicare_api_mysql_data:
+  valicare_api_test_mysql_data:
+  valicare-redis:
+
+networks:
+  main:
